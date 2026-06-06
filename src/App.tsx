@@ -137,13 +137,18 @@ export default function App() {
 
         {/* Ambient Dark Mesh Blue glow */}
         <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-blue-600/10 rounded-full blur-[100px] pointer-events-none"></div>
-        <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-orange-600/10 rounded-full blur-[100px] pointer-events-none"></div>
+        <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-orange-600/5 rounded-full blur-[100px] pointer-events-none"></div>
 
         <div className="container mx-auto px-4 max-w-7xl relative z-10">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
             
+            {/* High-fidelity interactive Product Carousel showing real product images & features */}
+            <div className="lg:col-span-5 relative w-full flex justify-center mt-6 lg:mt-0 order-first lg:order-last animate-fade-in">
+              <ProductCarousel />
+            </div>
+
             {/* Hero text content block */}
-            <div className="lg:col-span-7 space-y-6 text-center lg:text-left">
+            <div className="lg:col-span-7 space-y-6 text-center lg:text-left lg:order-first">
               <div className="inline-flex items-center gap-2 px-3 py-1 bg-orange-550/10 text-orange-400 text-xs font-bold rounded-full border border-orange-500/20 uppercase tracking-widest font-sans">
                 <CloudRain className="h-4 w-4 animate-bounce text-orange-400" /> ১০০% প্রিমিয়াম ওয়াটারপ্রুফ গিয়ার
               </div>
@@ -161,12 +166,12 @@ export default function App() {
 
               {/* Dynamic offer bubble */}
               <div className="bg-slate-800/80 backdrop-blur-xs p-4 rounded-2xl border border-slate-700/80 max-w-md mx-auto lg:mx-0 grid grid-cols-2 gap-4">
-                <div className="text-center border-r border-slate-700">
-                  <span className="text-[10px] text-slate-400 block font-sans">XL & XXL সাইজ</span>
+                <div className="text-center border-r border-slate-700 font-sans">
+                  <span className="text-[10px] text-slate-400 block pb-1">XL & XXL সাইজ</span>
                   <span className="text-2xl font-black text-orange-400 font-mono">৯৯০/- TK</span>
                 </div>
-                <div className="text-center">
-                  <span className="text-[10px] text-slate-400 block font-sans">3XL & 4XL সাইজ</span>
+                <div className="text-center font-sans">
+                  <span className="text-[10px] text-slate-400 block pb-1">3XL & 4XL সাইজ</span>
                   <span className="text-2xl font-black text-orange-400 font-mono">১০৯০/- TK</span>
                 </div>
               </div>
@@ -188,7 +193,7 @@ export default function App() {
               <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start pt-3">
                 <button
                   onClick={() => scrollToSection('checkout-form')}
-                  className="px-8 py-4 bg-orange-500 hover:bg-orange-600 active:scale-98 text-white font-black text-sm sm:text-base rounded-2xl transition duration-300 shadow-lg shadow-orange-500/20 flex items-center justify-center gap-2 cursor-pointer"
+                  className="px-8 py-4 bg-orange-500 hover:bg-orange-600 active:scale-98 text-white font-black text-sm sm:text-base rounded-2xl transition duration-300 shadow-lg shadow-orange-500/25 flex items-center justify-center gap-2 cursor-pointer animate-pulse-subtle"
                   id="hero-order-now"
                 >
                   <ShoppingBag className="h-5 w-5" /> অর্ডার ফরম এ চলে যান (COD)
@@ -200,11 +205,6 @@ export default function App() {
                   সাইজ ক্যালকুলেটর <ChevronRight className="h-5 w-5 text-slate-400" />
                 </button>
               </div>
-            </div>
-
-            {/* High-fidelity interactive Product Carousel showing real product images & features */}
-            <div className="lg:col-span-5 relative w-full flex justify-center mt-6 lg:mt-0">
-              <ProductCarousel />
             </div>
 
           </div>
@@ -246,7 +246,7 @@ export default function App() {
 
           <div className="mt-4 flex justify-center gap-4 text-[11px] sm:text-xs font-sans text-slate-500">
             <span className="flex items-center gap-1">
-              ⭐ ১০০০+ স্থানীয় বাইকারদের প্রথম পছন্দ
+              ⭐ ১২৭৮৫+ জন কৃষক, চাকরিজীবি ও বাইকার ভাইয়েদের প্রথম পছন্দ
             </span>
             <span className="text-slate-300">|</span>
             <span className="flex items-center gap-1">
