@@ -1169,7 +1169,7 @@ export default function App() {
             <span>•</span>
             <button
               onClick={() => setShowAdmin(true)}
-              className="text-slate-400 hover:text-yellow-400 transition underline cursor-pointer flex items-center gap-1 font-sans"
+              className="text-slate-900 hover:text-slate-900 transition cursor-pointer flex items-center gap-1 font-sans"
               id="admin-dashboard-toggle-footer"
             >
               <Settings className="h-3 w-3" /> অ্যাডমিন প্যানেল ({ordersCount} অর্ডার)
