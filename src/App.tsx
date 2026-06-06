@@ -14,6 +14,7 @@ import ProductCarousel from './components/ProductCarousel';
 import LivePurchaseNotification from './components/LivePurchaseNotification';
 import PromoCountdown from './components/PromoCountdown';
 import PageRenderer from './components/PageRenderer';
+import OrderTracker from './components/OrderTracker';
 import navyRaincoatImg from './assets/images/navy_raincoat_1780660053988.png';
 import { Size, ProductColor, RaincoatOrder } from './types';
 import { motion, AnimatePresence } from 'motion/react';
@@ -245,6 +246,7 @@ export default function App() {
 
   // Routing calculations
   const isAdminRoute = currentPath === '/admin' || currentHash === '#/admin' || currentHash === '#admin';
+  const isTrackOrderRoute = currentPath === '/track-order' || currentHash === '#/track-order' || currentHash === '#track-order';
 
   // Check if hash matches a custom page slug from custom landing pages collection
   const pagesJson = localStorage.getItem('raincoat_pages') || '[]';
@@ -252,7 +254,7 @@ export default function App() {
   try {
     const pages = JSON.parse(pagesJson);
     const cleanHash = currentHash.replace(/^#\//, '').replace(/^#/, '');
-    if (cleanHash && cleanHash !== 'home' && cleanHash !== 'features' && cleanHash !== 'live-video' && cleanHash !== 'comparison' && cleanHash !== 'bundle-offer' && cleanHash !== 'delivery-timeline' && cleanHash !== 'size-chart' && cleanHash !== 'checkout-form') {
+    if (cleanHash && cleanHash !== 'home' && cleanHash !== 'features' && cleanHash !== 'live-video' && cleanHash !== 'comparison' && cleanHash !== 'bundle-offer' && cleanHash !== 'delivery-timeline' && cleanHash !== 'size-chart' && cleanHash !== 'checkout-form' && cleanHash !== 'track-order') {
       activeCustomPage = pages.find((p: any) => p.slug === cleanHash);
     }
   } catch (e) {
@@ -272,6 +274,60 @@ export default function App() {
         }} 
         onRefreshOrdersCount={refreshOrdersCount}
       />
+    );
+  }
+
+  // Handle Track Order routing (Separate Tab/Page View)
+  if (isTrackOrderRoute) {
+    return (
+      <div className="min-h-screen bg-slate-50 relative selection:bg-blue-600 selection:text-white flex flex-col justify-between font-sans">
+        {/* Urgent Alert Strip */}
+        <div className="bg-gradient-to-r from-orange-600 via-rose-500 to-blue-900 text-white text-xs sm:text-sm font-bold text-center py-2 px-4 shadow-sm flex items-center justify-center gap-2 relative z-40 font-sans">
+          <span>🌧️ বর্ষা ধামাকা ২০% ছাড়! ডেলিভারি চার্জ সম্পূর্ণ ফ্রি! 🌧️</span>
+          <button 
+            onClick={() => {
+              if (currentPath === '/track-order') {
+                window.location.pathname = '/';
+              } else {
+                window.location.hash = '';
+              }
+            }} 
+            className="underline text-amber-250 hover:text-white transition font-black ml-4 cursor-pointer"
+          >
+            প্রধান পেইজে যান
+          </button>
+        </div>
+
+        {/* Back navigation bar */}
+        <div className="bg-white border-b border-slate-200 py-3 px-4 shadow-xs">
+          <div className="max-w-3xl mx-auto flex items-center justify-between">
+            <button
+              onClick={() => {
+                if (currentPath === '/track-order') {
+                  window.location.pathname = '/';
+                } else {
+                  window.location.hash = '';
+                }
+              }}
+              className="flex items-center gap-1.5 text-slate-700 hover:text-slate-950 font-bold text-xs cursor-pointer hover:underline"
+            >
+              ⬅ প্রধান পেইজে ফেরত যান
+            </button>
+            <span className="text-[11px] font-bold text-slate-400 font-mono">Premium Raincoat Shop BD</span>
+          </div>
+        </div>
+
+        {/* Main Content Area */}
+        <div className="flex-1 py-12 px-4 max-w-3xl mx-auto w-full flex items-center">
+          <OrderTracker />
+        </div>
+
+        {/* Secure Trust Footer */}
+        <div className="bg-slate-900 text-slate-400 text-center py-6 border-t border-slate-800 text-xs">
+          <p>© {new Date().getFullYear()} Premium Raincoat BD. সর্বস্বত্ব সংরক্ষিত।</p>
+          <p className="text-[10px] text-slate-550 mt-1">সবচেয়ে নির্ভরযোগ্য কাস্টমার কুরিয়ার ট্র্যাকিং</p>
+        </div>
+      </div>
     );
   }
 
@@ -339,6 +395,12 @@ export default function App() {
           className="underline hover:text-orange-200 transition font-extrabold cursor-pointer hidden sm:inline-block ml-4"
         >
           অর্ডার করুন এখন
+        </button>
+        <button
+          onClick={() => window.open('#/track-order', '_blank')}
+          className="underline hover:text-cyan-200 text-cyan-100 transition font-extrabold cursor-pointer hidden sm:inline-block ml-4"
+        >
+          🔍 অর্ডার ট্র্যাক করুন
         </button>
       </div>
 
@@ -1066,6 +1128,13 @@ export default function App() {
             <span>© {new Date().getFullYear()} Raincoat BD. All rights reserved.</span>
             <span>•</span>
             <span>হিট সিল ইলাস্টিক জ্যাকেট ও প্যান্ট</span>
+            <span>•</span>
+            <button
+              onClick={() => window.open('#/track-order', '_blank')}
+              className="text-slate-300 hover:text-orange-400 font-bold transition underline cursor-pointer flex items-center gap-1 font-sans"
+            >
+              🔍 অর্ডার ট্র্যাক করুন
+            </button>
             <span>•</span>
             <button
               onClick={() => setShowAdmin(true)}

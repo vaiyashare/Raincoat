@@ -59,14 +59,14 @@ export default function LivePurchaseNotification() {
   const currentPurchase = PURCHASE_DATA[currentIndex];
 
   return (
-    <div className="fixed top-3 left-1/2 -translate-x-1/2 z-[100000] pointer-events-none w-full max-w-[calc(100vw-1.5rem)] sm:max-w-xs px-2 sm:px-0">
+    <div className="fixed top-6 right-3 sm:right-6 z-[100000] pointer-events-none w-full max-w-[calc(100vw-1.5rem)] sm:max-w-xs px-2 sm:px-0">
       <AnimatePresence mode="wait">
         {isVisible && (
           <motion.div
             key={currentPurchase.id}
-            initial={{ opacity: 0, y: -40, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -15, scale: 0.95 }}
+            initial={{ opacity: 0, x: 50, scale: 0.95 }}
+            animate={{ opacity: 1, x: 0, scale: 1 }}
+            exit={{ opacity: 0, x: 40, scale: 0.95 }}
             transition={{ type: 'spring', stiffness: 300, damping: 25 }}
             className="pointer-events-auto bg-slate-950/90 backdrop-blur-md border border-slate-800 p-2 sm:p-2.5 rounded-xl shadow-xl flex items-center gap-2.5 text-white font-sans"
           >

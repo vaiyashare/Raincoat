@@ -46,6 +46,47 @@ export default function OrderForm({
   const [errorMessage, setErrorMessage] = useState('');
   const [agreedTerms, setAgreedTerms] = useState(true);
 
+  // States to track recent duplicates (placed within past 2 hours)
+  const [hasRecentOrder, setHasRecentOrder] = useState(false);
+  const [recentOrderId, setRecentOrderId] = useState('');
+
+  const normalizePhone = (p: string) => {
+    const clean = p.replace(/\D/g, '');
+    return clean.slice(-11);
+  };
+
+  // Real-time check for duplicate orders with same mobile number in last 2 hours
+  useEffect(() => {
+    const cleanInput = normalizePhone(phone);
+    if (cleanInput.length < 11) {
+      setHasRecentOrder(false);
+      return;
+    }
+
+    try {
+      const existingOrdersJson = localStorage.getItem('raincoat_orders') || '[]';
+      const existingOrders: RaincoatOrder[] = JSON.parse(existingOrdersJson);
+      const twoHoursAgo = Date.now() - 2 * 60 * 60 * 1000;
+
+      const recentDuplicate = existingOrders.find(order => {
+        const cleanOrderPhone = normalizePhone(order.phone);
+        const isSamePhone = cleanOrderPhone === cleanInput;
+        const isWithinTwoHours = new Date(order.createdAt).getTime() > twoHoursAgo;
+        return isSamePhone && isWithinTwoHours;
+      });
+
+      if (recentDuplicate) {
+        setHasRecentOrder(true);
+        setRecentOrderId(recentDuplicate.id);
+      } else {
+        setHasRecentOrder(false);
+      }
+    } catch (err) {
+      console.error('Error checking recent orders:', err);
+      setHasRecentOrder(false);
+    }
+  }, [phone]);
+
   // Dynamic price calculation
   const getPrice = (sz: Size) => {
     return (sz === '3XL' || sz === '4XL') ? 1090 : 990;
@@ -264,6 +305,15 @@ export default function OrderForm({
               required
             />
           </div>
+          {hasRecentOrder && (
+            <div className="mt-2 p-3 bg-amber-55 text-amber-950 border border-amber-300 rounded-xl text-xs font-semibold leading-relaxed flex items-start gap-2 shadow-xs animate-pulse">
+              <span className="text-base">⚠️</span>
+              <div>
+                <strong>স্মার্ট সতর্কতা:</strong> এই মোবাইল নম্বর দিয়ে গত ২ ঘণ্টার মধ্যে ইতিমধ্যে একটি অর্ডার দেওয়া হয়েছে! (অর্ডার আইডি: <span className="font-mono bg-white/70 px-1.5 py-0.2 rounded text-slate-900 font-extrabold">#{recentOrderId.replace('ord-', '')}</span>)
+                <p className="text-[10px] text-amber-800 mt-1">ভুলবশত বা দ্বিতীয়বার ডুপ্লিকেট অর্ডার সাবমিট করা এড়াতে তথ্য চেক করে নিন।</p>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Physical Measurements: Weight & Height */}

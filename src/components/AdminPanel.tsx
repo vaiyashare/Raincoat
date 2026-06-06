@@ -370,6 +370,40 @@ export default function AdminPanel({ onClose, onRefreshOrdersCount, onRefreshPag
     });
   };
 
+  const handleDownloadCSV = () => {
+    if (orders.length === 0) {
+      setCopiedMessage('কোনো অর্ডার নেই ডাউনলোড করার মতো!');
+      setTimeout(() => setCopiedMessage(''), 2000);
+      return;
+    }
+
+    // Use BOM \uFEFF to preserve UTF-8 formatting for Excel
+    let csvContent = "\uFEFFOrder ID,Name,Phone,Address/Village,Size,Color,Weight(kg),Height,Price,ConfirmedStatus,DeliveryStatus,Date\n";
+    orders.forEach(o => {
+      const formattedDate = new Date(o.createdAt).toLocaleDateString('bn-BD');
+      const row = `"${o.id}","${o.name}","${o.phone}","${o.village}","${o.size}","${o.color}",${o.weight},"${o.heightFeet}'${o.heightInches}\"",${o.price},"${o.isConfirmed ? 'Confirmed' : 'Unconfirmed'}","${o.status}","${formattedDate}"`;
+      csvContent += row + "\n";
+    });
+
+    try {
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", `orders_${new Date().toISOString().slice(0, 10)}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      setCopiedMessage('অর্ডার ডাটা CSV ফাইল হিসেবে সফলভাবে ডাউনলোড হয়েছে!');
+      setTimeout(() => setCopiedMessage(''), 3000);
+    } catch (err) {
+      console.error('Error selling CSV download:', err);
+      setCopiedMessage('ফাইল ডাউনলোড করতে সমস্যা হয়েছে!');
+      setTimeout(() => setCopiedMessage(''), 2000);
+    }
+  };
+
   // Convert Gregorian ISO to detailed Bengali Date & Time representation in real-time
   const formatBanglaDate = (isoString: string) => {
     try {
@@ -924,12 +958,22 @@ export default function AdminPanel({ onClose, onRefreshOrdersCount, onRefreshPag
               </button>
               
               {activeTab === 'completed' ? (
-                <button
-                  onClick={handleCopyCSV}
-                  className="py-2 px-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition flex items-center justify-center gap-1.5 text-xs font-bold shadow-xs cursor-pointer"
-                >
-                  <ClipboardCopy className="h-3.5 w-3.5" /> CSV ডাটা কপি করুন
-                </button>
+                <div className="flex gap-2 shrink-0">
+                  <button
+                    onClick={handleCopyCSV}
+                    className="py-2 px-3 bg-indigo-650 hover:bg-indigo-750 text-white rounded-lg transition flex items-center justify-center gap-1.5 text-xs font-bold shadow-xs cursor-pointer"
+                    title="ক্লিপবোর্ডে কপি করুন"
+                  >
+                    <ClipboardCopy className="h-3.5 w-3.5" /> CSV কপি
+                  </button>
+                  <button
+                    onClick={handleDownloadCSV}
+                    className="py-2 px-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition flex items-center justify-center gap-1.5 text-xs font-bold shadow-xs cursor-pointer animate-bounce-on-hover"
+                    title="কম্পিউটারে এক্সেল স্প্রেডশিট ডাউনলোড করুন"
+                  >
+                    <FileSpreadsheet className="h-3.5 w-3.5" /> CSV ডাউনলোড করুন
+                  </button>
+                </div>
               ) : (
                 <button
                   onClick={handleClearAllIncomplete}
