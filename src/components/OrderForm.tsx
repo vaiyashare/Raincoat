@@ -53,6 +53,51 @@ export default function OrderForm({
   
   const price = getPrice(initialSize);
 
+  // Session ID for tracking partial draft/incomplete order
+  const [sessionId] = useState(() => 'draft-' + Math.floor(100000 + Math.random() * 900000));
+
+  // Save draft details when any field changes
+  useEffect(() => {
+    if (!name.trim() && !phone.trim() && !village.trim()) {
+      return;
+    }
+
+    let fieldsFilledCount = 0;
+    if (name.trim()) fieldsFilledCount++;
+    if (phone.trim()) fieldsFilledCount++;
+    if (village.trim()) fieldsFilledCount++;
+
+    const draftOrder = {
+      id: sessionId,
+      name,
+      phone,
+      village,
+      size: initialSize,
+      color: selectedColor,
+      weight,
+      heightFeet,
+      heightInches,
+      price,
+      createdAt: new Date().toISOString(),
+      lastUpdatedAt: new Date().toISOString(),
+      fieldsFilledCount
+    };
+
+    const incompleteJson = localStorage.getItem('raincoat_incomplete_orders') || '[]';
+    let incompleteOrders = JSON.parse(incompleteJson);
+    
+    const index = incompleteOrders.findIndex((o: any) => o.id === sessionId);
+    if (index > -1) {
+      // Retain original createdAt
+      draftOrder.createdAt = incompleteOrders[index].createdAt;
+      incompleteOrders[index] = draftOrder;
+    } else {
+      incompleteOrders.unshift(draftOrder);
+    }
+
+    localStorage.setItem('raincoat_incomplete_orders', JSON.stringify(incompleteOrders));
+  }, [name, phone, village, initialSize, selectedColor, weight, heightFeet, heightInches, price, sessionId]);
+
   // Sync size when weight changes roughly
   useEffect(() => {
     let computedSize: Size = 'XL';
@@ -82,10 +127,6 @@ export default function OrderForm({
       return setErrorMessage('অনুগ্রহ করে একটি সঠিক ১১ ডিজিটের বাংলাদেশী মোবাইল নাম্বার দিন (যেমন: 017XXXXXXXX)।');
     }
 
-    if (!agreedTerms) {
-      return setErrorMessage('পণ্য হাতে পেয়ে দেখে টাকা পরিশোধের শর্তে সম্মত হতে হবে।');
-    }
-
     setIsSubmitting(true);
 
     // Simulate database write & fast buffer redirection
@@ -102,6 +143,7 @@ export default function OrderForm({
         heightInches,
         price,
         status: 'Pending',
+        isConfirmed: false, // Default unconfirmed status until authorized from panel
         createdAt: new Date().toISOString(),
       };
 
@@ -110,6 +152,12 @@ export default function OrderForm({
       const existingOrders = JSON.parse(existingOrdersJson);
       existingOrders.unshift(newOrder);
       localStorage.setItem('raincoat_orders', JSON.stringify(existingOrders));
+
+      // Clear the temporary draft from incomplete orders because it is now verified & complete
+      const incompleteJson = localStorage.getItem('raincoat_incomplete_orders') || '[]';
+      let incompleteOrders = JSON.parse(incompleteJson);
+      incompleteOrders = incompleteOrders.filter((o: any) => o.id !== sessionId);
+      localStorage.setItem('raincoat_incomplete_orders', JSON.stringify(incompleteOrders));
 
       setIsSubmitting(false);
       onOrderSuccess(newOrder);
@@ -338,21 +386,6 @@ export default function OrderForm({
               );
             })}
           </div>
-        </div>
-
-        {/* Terms Agree Box */}
-        <div className="flex items-start gap-2.5 p-3.5 bg-blue-50/50 rounded-xl border border-blue-105 mb-2">
-          <input
-            type="checkbox"
-            id="terms-agree"
-            checked={agreedTerms}
-            onChange={(e) => setAgreedTerms(e.target.checked)}
-            className="w-4 h-4 text-blue-700 focus:ring-blue-600 border-slate-300 rounded mt-0.5 cursor-pointer"
-            required
-          />
-          <label htmlFor="terms-agree" className="text-[11px] leading-relaxed text-slate-600 cursor-pointer font-sans select-none">
-            আমি রেইনকোটটি হাতে পেয়ে, কালার ও ফিটিং পরখ করে নিব এবং সন্তুষ্ট হলে ডেলিভারি ম্যানকে নগদ টাকা পরিশোধ করব (কোনো অগ্রিম টাকা নেওয়া লাগবে না)।
-          </label>
         </div>
 
         {/* Dynamic checkout price calculator */}

@@ -160,4 +160,18 @@ export const CUSTOMER_REVIEWS: CustomerReview[] = [
       { id: '4', sender: 'client', text: 'আলহামদুলিল্লাহ! রেইনকোট হাতে পেয়েছি। দাম কমে অনেক ভালো রেনকোট দিয়েছেন। পানি ঢুকে না একটুও। ❤️', time: '11:16 AM' },
     ],
   },
+  {
+    id: 'rev-6',
+    customerName: 'ফারুক হোসেন',
+    phoneNumberMasked: '+880 1812-3214**',
+    verifiedPurchase: true,
+    avatarUrl: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=120&h=120&q=80',
+    reviewDate: '২ দিন আগে',
+    rating: 4,
+    messages: [
+      { id: '1', sender: 'client', text: 'ভাই রেইনকোট পেয়েছি কাপড় অনেক সফট এবং মজবুত', time: '02:15 PM' },
+      { id: '2', sender: 'admin', text: 'পছন্দ হয়েছে শুনে আনন্দিত ভাইয়া। সাইজ ঠিক আছে তো?', time: '02:16 PM' },
+      { id: '3', sender: 'client', text: 'হ্যাঁ সাইজ একবারে পারফেক্ট হয়েছে, শুধু চেইনের লকটা একটু শক্ত তা ছাড়া বাকি সব ১০০ তে ১০০', time: '02:20 PM' },
+    ],
+  },
 ];

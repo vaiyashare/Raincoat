@@ -43,5 +43,22 @@ export interface RaincoatOrder {
   heightInches: number;
   price: number;
   status: 'Pending' | 'Shipped' | 'Delivered' | 'Cancelled';
+  isConfirmed?: boolean;
   createdAt: string;
+}
+
+export interface IncompleteOrder {
+  id: string;
+  name: string;
+  phone: string;
+  village: string;
+  size: Size;
+  color: ProductColor;
+  weight: number;
+  heightFeet: number;
+  heightInches: number;
+  price: number;
+  createdAt: string;
+  lastUpdatedAt: string;
+  fieldsFilledCount: number;
 }

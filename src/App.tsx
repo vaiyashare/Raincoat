@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { 
   ShieldAlert, CloudRain, Star, ShoppingBag, ShieldCheck, Phone, CheckCircle2, 
   MapPin, Clock, ArrowDown, ChevronRight, HelpCircle, Heart, Settings, 
-  Smartphone, Award, Flame, ThumbsUp, Volume2, Info, MessageCircle
+  Smartphone, Award, Flame, ThumbsUp, Volume2, Info, MessageCircle,
+  Droplets, Bike, Truck, Shield, Sparkles
 } from 'lucide-react';
 import SizingChart from './components/SizingChart';
 import ReviewsList from './components/ReviewsList';
@@ -10,6 +11,10 @@ import OrderForm from './components/OrderForm';
 import Receipt from './components/Receipt';
 import AdminPanel from './components/AdminPanel';
 import ProductCarousel from './components/ProductCarousel';
+import LivePurchaseNotification from './components/LivePurchaseNotification';
+import PromoCountdown from './components/PromoCountdown';
+import PageRenderer from './components/PageRenderer';
+import navyRaincoatImg from './assets/images/navy_raincoat_1780660053988.png';
 import { Size, ProductColor, RaincoatOrder } from './types';
 import { motion, AnimatePresence } from 'motion/react';
 import { getSheetsConfig, getAccessToken, appendOrderToSheet } from './lib/googleSheets';
@@ -20,9 +25,48 @@ export default function App() {
   const [submittedOrder, setSubmittedOrder] = useState<RaincoatOrder | null>(null);
   const [showAdmin, setShowAdmin] = useState(false);
   const [ordersCount, setOrdersCount] = useState(0);
+  const [scrollProgress, setScrollProgress] = useState(0);
+  const [currentHash, setCurrentHash] = useState(window.location.hash);
+  const [currentPath, setCurrentPath] = useState(window.location.pathname);
+
+  useEffect(() => {
+    const handleNavigationChange = () => {
+      setCurrentHash(window.location.hash);
+      setCurrentPath(window.location.pathname);
+    };
+    window.addEventListener('hashchange', handleNavigationChange);
+    window.addEventListener('popstate', handleNavigationChange);
+    return () => {
+      window.removeEventListener('hashchange', handleNavigationChange);
+      window.removeEventListener('popstate', handleNavigationChange);
+    };
+  }, []);
 
   // Generate rain drops positions
   const [rainDrops, setRainDrops] = useState<{ left: string; delay: string; duration: string }[]>([]);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const checkoutEl = document.getElementById('checkout-form');
+      if (!checkoutEl) return;
+      
+      const scrollTop = window.scrollY || document.documentElement.scrollTop;
+      const checkoutTop = checkoutEl.getBoundingClientRect().top + scrollTop;
+      const viewportHeight = window.innerHeight;
+      
+      const maxScroll = checkoutTop - viewportHeight;
+      if (maxScroll <= 0) {
+        setScrollProgress(100);
+      } else {
+        const progress = Math.min(Math.max((scrollTop / maxScroll) * 100, 0), 100);
+        setScrollProgress(progress);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll();
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   useEffect(() => {
     // Generate rain particles configurations
@@ -53,6 +97,105 @@ export default function App() {
 
     return () => {
       document.body.removeChild(fbScript);
+    };
+  }, []);
+
+  // Inject third-party custom code snippets (Header & Footer slugs) dynamically
+  useEffect(() => {
+    // 1. Header snippet
+    const headerSnippet = localStorage.getItem('raincoat_header_snippets');
+    if (headerSnippet) {
+      const doc = new DOMParser().parseFromString(headerSnippet, 'text/html');
+      const nodes = Array.from(doc.head.childNodes).concat(Array.from(doc.body.childNodes));
+      
+      nodes.forEach((node: any) => {
+        if (node.tagName === 'STYLE') {
+          const style = document.createElement('style');
+          style.innerHTML = node.innerHTML;
+          style.setAttribute('data-injected', 'header-snippet');
+          document.head.appendChild(style);
+        } else if (node.tagName === 'SCRIPT') {
+          const script = document.createElement('script');
+          script.innerHTML = node.innerHTML;
+          if (node.src) script.src = node.src;
+          script.setAttribute('data-injected', 'header-snippet');
+          document.head.appendChild(script);
+        } else if (node.nodeType === Node.ELEMENT_NODE) {
+          const meta = node.cloneNode(true);
+          meta.setAttribute('data-injected', 'header-snippet');
+          document.head.appendChild(meta);
+        }
+      });
+    }
+
+    // 2. Footer snippet
+    const footerSnippet = localStorage.getItem('raincoat_footer_snippets');
+    if (footerSnippet) {
+      const doc = new DOMParser().parseFromString(footerSnippet, 'text/html');
+      const nodes = Array.from(doc.head.childNodes).concat(Array.from(doc.body.childNodes));
+      
+      nodes.forEach((node: any) => {
+        if (node.tagName === 'SCRIPT') {
+          const script = document.createElement('script');
+          script.innerHTML = node.innerHTML;
+          if (node.src) script.src = node.src;
+          script.setAttribute('data-injected', 'footer-snippet');
+          document.body.appendChild(script);
+        } else if (node.nodeType === Node.ELEMENT_NODE) {
+          const elm = node.cloneNode(true);
+          elm.setAttribute('data-injected', 'footer-snippet');
+          document.body.appendChild(elm);
+        }
+      });
+    }
+
+    return () => {
+      document.querySelectorAll('[data-injected]').forEach(el => el.remove());
+    };
+  }, []);
+
+  // Inject Google Analytics & Facebook Pixel tags dynamically
+  useEffect(() => {
+    const pixelId = localStorage.getItem('fb_pixel_id');
+    if (pixelId) {
+      const script = document.createElement('script');
+      script.innerHTML = `
+        !function(f,b,e,v,n,t,s)
+        {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+        n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+        if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+        n.queue=[];t=b.createElement(e);t.async=!0;
+        t.src=v;s=b.getElementsByTagName(e)[0];
+        s.parentNode.insertBefore(t,s)}(window, document,'script',
+        'https://connect.facebook.net/en_US/fbevents.js');
+        fbq('init', '${pixelId}');
+        fbq('track', 'PageView');
+      `;
+      script.setAttribute('data-injected-api', 'fb-pixel');
+      document.head.appendChild(script);
+    }
+
+    const gaId = localStorage.getItem('ga_track_id');
+    if (gaId) {
+      const scriptTag = document.createElement('script');
+      scriptTag.async = true;
+      scriptTag.src = `https://www.googletagmanager.com/gtag/js?id=${gaId}`;
+      scriptTag.setAttribute('data-injected-api', 'ga-analytics-script');
+      document.head.appendChild(scriptTag);
+
+      const scriptConfig = document.createElement('script');
+      scriptConfig.innerHTML = `
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', '${gaId}');
+      `;
+      scriptConfig.setAttribute('data-injected-api', 'ga-analytics-config');
+      document.head.appendChild(scriptConfig);
+    }
+
+    return () => {
+      document.querySelectorAll('[data-injected-api]').forEach(el => el.remove());
     };
   }, []);
 
@@ -100,9 +243,90 @@ export default function App() {
     }
   };
 
+  // Routing calculations
+  const isAdminRoute = currentPath === '/admin' || currentHash === '#/admin' || currentHash === '#admin';
+
+  // Check if hash matches a custom page slug from custom landing pages collection
+  const pagesJson = localStorage.getItem('raincoat_pages') || '[]';
+  let activeCustomPage = null;
+  try {
+    const pages = JSON.parse(pagesJson);
+    const cleanHash = currentHash.replace(/^#\//, '').replace(/^#/, '');
+    if (cleanHash && cleanHash !== 'home' && cleanHash !== 'features' && cleanHash !== 'live-video' && cleanHash !== 'comparison' && cleanHash !== 'bundle-offer' && cleanHash !== 'delivery-timeline' && cleanHash !== 'size-chart' && cleanHash !== 'checkout-form') {
+      activeCustomPage = pages.find((p: any) => p.slug === cleanHash);
+    }
+  } catch (e) {
+    console.error(e);
+  }
+
+  // Handle direct Admin routing
+  if (isAdminRoute) {
+    return (
+      <AdminPanel 
+        onClose={() => {
+          if (currentPath === '/admin') {
+            window.location.pathname = '/';
+          } else {
+            window.location.hash = '';
+          }
+        }} 
+        onRefreshOrdersCount={refreshOrdersCount}
+      />
+    );
+  }
+
+  // Handle custom Pages routing
+  if (activeCustomPage) {
+    return (
+      <div className="min-h-screen bg-slate-50 relative selection:bg-blue-600 selection:text-white">
+        {/* Urgent Alert Strip */}
+        <div className="bg-gradient-to-r from-orange-600 via-rose-500 to-blue-900 text-white text-xs sm:text-sm font-bold text-center py-2 px-4 shadow-sm flex items-center justify-center gap-2 relative z-40 font-sans">
+          <span>🌧️ বর্ষা ধামাকা ২০% ছাড়! ডেলিভারি চার্জ সম্পূর্ণ ফ্রি! 🌧️</span>
+          <button 
+            onClick={() => window.location.hash = ''} 
+            className="underline text-amber-250 hover:text-white transition font-black ml-4 cursor-pointer"
+          >
+            প্রধান পেইজে যান
+          </button>
+        </div>
+        
+        <PageRenderer 
+          page={activeCustomPage} 
+          onOrderSuccess={handleOrderCreated} 
+        />
+        
+        {/* Floating Call & WhatsApp Buttons */}
+        <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-2 pointer-events-none font-sans">
+          <a
+            href="https://wa.me/8801624933949"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="pointer-events-auto flex items-center justify-center bg-emerald-500 text-white w-10 h-10 rounded-full shadow-[0_3px_10px_rgba(16,185,129,0.3)] hover:scale-110 transition-transform"
+          >
+            <MessageCircle className="h-5 w-5" />
+          </a>
+          <a
+            href="tel:+8801624933949"
+            className="pointer-events-auto flex items-center justify-center bg-blue-600 text-white w-10 h-10 rounded-full shadow-[0_3px_10px_rgba(37,99,235,0.3)] hover:scale-110 transition-transform"
+          >
+            <Phone className="h-4.5 w-4.5 animate-pulse" />
+          </a>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col font-sans selection:bg-blue-600 selection:text-white relative">
       
+      {/* Top Thin Scroll Progress Bar */}
+      <div className="fixed top-0 left-0 w-full h-[4px] bg-slate-800/10 z-[100000] pointer-events-none">
+        <div 
+          className="h-full bg-gradient-to-r from-orange-500 via-[#00e3cd] to-rose-500 transition-all duration-100 ease-out shadow-xs"
+          style={{ width: `${scrollProgress}%` }}
+        />
+      </div>
+
       {/* FB Root Element for official Facebook SDK */}
       <div id="fb-root"></div>
 
@@ -119,7 +343,7 @@ export default function App() {
       </div>
 
       {/* Elegant Header / Hero Section with animated rain backdrop */}
-      <header className="relative bg-slate-900 text-white overflow-hidden py-16 sm:py-24 border-b border-slate-800" id="home">
+      <header className="relative bg-slate-900 text-white overflow-hidden py-10 sm:py-16 border-b border-slate-800" id="home">
         {/* Animated Simulated Raindrops */}
         <div className="absolute inset-0 pointer-events-none overflow-hidden opacity-30">
           {rainDrops.map((drop, idx) => (
@@ -185,7 +409,7 @@ export default function App() {
                   <CheckCircle2 className="h-4.5 w-4.5 text-orange-400" /> হাতের কব্জি রাবার গ্রিপ
                 </div>
                 <div className="flex items-center gap-1.5 font-sans">
-                  <CheckCircle2 className="h-4.5 w-4.5 text-orange-400" /> ৩ বছর ব্যবহারের গ্যারান্টি
+                  <CheckCircle2 className="h-4.5 w-4.5 text-orange-400" /> ৩ বছর ব্যবহার করতে পারবেন অনায়েশে
                 </div>
               </div>
 
@@ -205,6 +429,22 @@ export default function App() {
                   সাইজ ক্যালকুলেটর <ChevronRight className="h-5 w-5 text-slate-400" />
                 </button>
               </div>
+
+              {/* Trust Badges in Bengali */}
+              <div className="flex flex-wrap items-center justify-center lg:justify-start gap-3 sm:gap-4 pt-4 mt-1 border-t border-slate-800/60 font-sans">
+                <div className="flex items-center gap-1.5 bg-slate-800/35 px-2.5 py-1.5 rounded-full border border-slate-850">
+                  <ShieldCheck className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
+                  <span className="text-[10px] sm:text-xs text-slate-300 font-medium">১০০% নিরাপদ পেমেন্ট</span>
+                </div>
+                <div className="flex items-center gap-1.5 bg-slate-800/35 px-2.5 py-1.5 rounded-full border border-slate-850">
+                  <Award className="h-3.5 w-3.5 text-amber-400 shrink-0" />
+                  <span className="text-[10px] sm:text-xs text-slate-300 font-medium">কোয়ালিটি চেকড প্রোডাক্ট</span>
+                </div>
+                <div className="flex items-center gap-1.5 bg-slate-800/35 px-2.5 py-1.5 rounded-full border border-slate-850">
+                  <Phone className="h-3.5 w-3.5 text-cyan-400 shrink-0" />
+                  <span className="text-[10px] sm:text-xs text-slate-300 font-medium">২৪/৭ দ্রুত কাস্টমার সাপোর্ট</span>
+                </div>
+              </div>
             </div>
 
           </div>
@@ -212,7 +452,7 @@ export default function App() {
       </header>
 
       {/* Prominent Embedded Video Section */}
-      <section className="py-12 bg-white border-b border-slate-100" id="live-video">
+      <section className="py-8 bg-white border-b border-slate-100" id="live-video">
         <div className="container mx-auto px-4 max-w-4xl text-center">
           <div className="max-w-2xl mx-auto mb-6">
             <span className="px-3 py-1 bg-orange-50 text-orange-700 text-xs font-bold rounded-full border border-orange-200 inline-flex items-center gap-1 font-sans">
@@ -257,90 +497,420 @@ export default function App() {
       </section>
 
       {/* Bento Grid Features Showcase */}
-      <section className="py-16 bg-slate-50 border-b border-slate-100" id="features">
+      <section className="py-10 bg-slate-50 border-b border-slate-100" id="features">
         <div className="container mx-auto px-4 max-w-7xl">
-          <div className="text-center max-w-2xl mx-auto mb-12">
+          <div className="text-center max-w-2xl mx-auto mb-8">
             <span className="text-xs font-bold text-orange-600 uppercase tracking-widest font-sans">কেন আমাদের রেইনকোট সেরা?</span>
-            <h2 className="text-2xl sm:text-3xl font-black text-slate-900 mt-2 font-sans">
+            <h2 className="text-xl sm:text-2xl font-black text-slate-900 mt-1 font-sans">
               শতভাগ সুরক্ষার জন্য প্রিমিয়াম ডিজাইন ও কোয়ালিটি ফিচার
             </h2>
-            <p className="text-xs sm:text-sm text-slate-500 mt-1.5 font-sans">
+            <p className="text-xs sm:text-sm text-slate-500 mt-1 font-sans">
               আলাদা জ্যকেট ও প্যান্টের এক চমত্কার সেলাই বিহীন কম্বিনেশন, যা কাদা বালি ও ঝড়ের ঝাপটা থেকে বাঁচাবে সম্পূর্ণ সুরক্ষিতভাবে।
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 font-sans">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 font-sans">
             {/* feature 1 */}
-            <div className="bg-white p-6 rounded-2xl border border-slate-200/60 shadow-xs hover:shadow-lg transition-all duration-300">
-              <div className="w-11 h-11 bg-teal-50 rounded-xl flex items-center justify-center text-teal-600 font-extrabold text-xl mb-4">
-                🫧
+            <div className="bg-white p-5 rounded-2xl border border-slate-200/60 shadow-xs hover:shadow-lg transition-all duration-300 animate-fade-in flex flex-col justify-between">
+              <div>
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 bg-teal-50 rounded-xl flex items-center justify-center text-teal-600 shrink-0">
+                    <Droplets className="h-5 w-5" />
+                  </div>
+                  <h3 className="text-base sm:text-lg font-bold text-slate-950 font-sans">১০০% ওয়াটারপ্রুফ ফেব্রিক্স</h3>
+                </div>
+                <p className="text-xs text-slate-500 leading-relaxed">
+                  উন্নত মানের হাই-ডেন্সিটি ফেব্রিক্স দিয়ে নিখুঁত ফিনিশিং করা। টানা ভারী বৃষ্টির পিনপ্রিক ড্রপ ও কাদা জল নিষ্কাশন করতে ১০০% সমর্থ্য।
+                </p>
               </div>
-              <h3 className="text-lg font-bold text-slate-950 font-sans">১০০% ওয়াটারপ্রুফ ফেব্রিক্স</h3>
-              <p className="text-xs text-slate-500 mt-2 leading-relaxed">
-                উন্নত মানের হাই-ডেন্সিটি ফেব্রিক্স দিয়ে নিখুঁত ফিনিশিং করা। টানা ভারী বৃষ্টির পিনপ্রিক ড্রপ ও কাদা জল নিষ্কাশন করতে ১০০% সমর্থ্য।
-              </p>
             </div>
 
             {/* feature 2 */}
-            <div className="bg-white p-6 rounded-2xl border border-slate-200/60 shadow-xs hover:shadow-lg transition-all duration-300">
-              <div className="w-11 h-11 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-600 font-extrabold text-xl mb-4">
-                🔥
+            <div className="bg-white p-5 rounded-2xl border border-slate-200/60 shadow-xs hover:shadow-lg transition-all duration-300 flex flex-col justify-between">
+              <div>
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-600 shrink-0">
+                    <Flame className="h-5 w-5" />
+                  </div>
+                  <h3 className="text-base sm:text-lg font-bold text-slate-950 font-sans">থার্মাল হিট সিল প্রযুক্তি</h3>
+                </div>
+                <p className="text-xs text-slate-500 leading-relaxed">
+                  কোনো সুই বা সুতোর ছিদ্র নেই! কাপড়ের জোড়গুলোতে থার্মাল হিট সিল ব্যবহার করার ফলে এর ভেতর দিয়ে এক ফোটা পানি বা ঝড়ো বাতাস ঢোকার কোনো সুযোগই নেই।
+                </p>
               </div>
-              <h3 className="text-lg font-bold text-slate-950 font-sans">থার্মাল হিট সিল প্রযুক্তি</h3>
-              <p className="text-xs text-slate-500 mt-2 leading-relaxed">
-                কোনো সুই বা সুতোর ছিদ্র নেই! কাপড়ের জোড়গুলোতে থার্মাল হিট সিল ব্যবহার করার ফলে এর ভেতর দিয়ে এক ফোটা পানি বা ঝড়ো বাতাস ঢোকার কোনো সুযোগই নেই।
-              </p>
             </div>
 
             {/* feature 3 */}
-            <div className="bg-white p-6 rounded-2xl border border-slate-200/60 shadow-xs hover:shadow-lg transition-all duration-300">
-              <div className="w-11 h-11 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600 font-extrabold text-xl mb-4">
-                🧤
+            <div className="bg-white p-5 rounded-2xl border border-slate-200/60 shadow-xs hover:shadow-lg transition-all duration-300 flex flex-col justify-between">
+              <div>
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600 shrink-0">
+                    <ShieldCheck className="h-5 w-5" />
+                  </div>
+                  <h3 className="text-base sm:text-lg font-bold text-slate-950 font-sans">হাতের কব্জিতে রাবার গ্রিপ</h3>
+                </div>
+                <p className="text-xs text-slate-500 leading-relaxed">
+                  কব্জিতে প্রিমিয়াম ফিনিশড রাবার দেওয়া রয়েছে। মোটরসাইকেল ড্রাইভ বা সাইক্লিং করার সময় হাত বেয়ে বাতাস ও জল কাপড়ের ভেতর প্রবেশ করতে পারে না।
+                </p>
               </div>
-              <h3 className="text-lg font-bold text-slate-950 font-sans">হাতের কব্জিতে রাবার গ্রিপ</h3>
-              <p className="text-xs text-slate-500 mt-2 leading-relaxed">
-                কব্জিতে প্রিমিয়াম ফিনিশড রাবার দেওয়া রয়েছে। মোটরসাইকেল ড্রাইভ বা সাইক্লিং করার সময় হাত বেয়ে বাতাস ও জল কাপড়ের ভেতর প্রবেশ করতে পারে না।
-              </p>
             </div>
 
             {/* feature 4 */}
-            <div className="bg-white p-6 rounded-2xl border border-slate-200/60 shadow-xs hover:shadow-lg transition-all duration-300">
-              <div className="w-11 h-11 bg-amber-50 rounded-xl flex items-center justify-center text-amber-600 font-extrabold text-xl mb-4">
-                🏍️
+            <div className="bg-white p-5 rounded-2xl border border-slate-200/60 shadow-xs hover:shadow-lg transition-all duration-300 flex flex-col justify-between">
+              <div>
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 bg-amber-50 rounded-xl flex items-center justify-center text-amber-600 shrink-0">
+                    <Bike className="h-5 w-5" />
+                  </div>
+                  <h3 className="text-base sm:text-lg font-bold text-slate-950 font-sans">বাইকার ও সাইক্লিস্টদের পরম গিয়ার</h3>
+                </div>
+                <p className="text-xs text-slate-500 leading-relaxed">
+                  TVS, Suzuki, Yamaha, Pulsar বা Bajaj ইত্যাদি বাইক নিয়ে যারা হাইওয়েতে নিয়মিত যাতায়াত করেন, তাদের বর্ষাকালের একমাত্র নিখুঁত ভরসা আমাদের এই প্রিমিয়াম রেনকোট।
+                </p>
               </div>
-              <h3 className="text-lg font-bold text-slate-950 font-sans">বাইকার ও সাইক্লিস্টদের পরম গিয়ার</h3>
-              <p className="text-xs text-slate-500 mt-2 leading-relaxed">
-                TVS, Suzuki, Yamaha, Pulsar বা Bajaj ইত্যাদি বাইক নিয়ে যারা হাইওয়েতে নিয়মিত যাতায়াত করেন, তাদের বর্ষাকালের একমাত্র নিখুঁত ভরসা আমাদের এই প্রিমিয়াম রেনকোট।
-              </p>
             </div>
 
             {/* feature 5 */}
-            <div className="bg-white p-6 rounded-2xl border border-slate-200/60 shadow-xs hover:shadow-lg transition-all duration-300">
-              <div className="w-11 h-11 bg-emerald-50 rounded-xl flex items-center justify-center text-emerald-600 font-extrabold text-xl mb-4">
-                📦
+            <div className="bg-white p-5 rounded-2xl border border-slate-200/60 shadow-xs hover:shadow-lg transition-all duration-300 flex flex-col justify-between">
+              <div>
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center text-emerald-600 shrink-0">
+                    <Truck className="h-5 w-5" />
+                  </div>
+                  <h3 className="text-base sm:text-lg font-bold text-slate-950 font-sans">অগ্রিম টাকা ছাড়াই ডেলিভারি</h3>
+                </div>
+                <p className="text-xs text-slate-500 leading-relaxed">
+                  বিশ্বাসযোগ্যতায় আমরা বিশ্বাসী! অর্ডার করতে অগ্রিম এক টাকাও দিতে হবে না। পার্সেল হাতে পেয়ে কোয়ালিটি দেখে তারপর কুরিয়ার এজেন্ট বা ডেলিভারি বয়কে মূল্য পরিশোধ করুন।
+                </p>
               </div>
-              <h3 className="text-lg font-bold text-slate-950 font-sans">অগ্রিম টাকা ছাড়াই ডেলিভারি</h3>
-              <p className="text-xs text-slate-500 mt-2 leading-relaxed">
-                বিশ্বাসযোগ্যতায় আমরা বিশ্বাসী! অর্ডার করতে অগ্রিম এক টাকাও দিতে হবে না। পার্সেল হাতে পেয়ে কোয়ালিটি দেখে তারপর কুরিয়ার এজেন্ট বা ডেলিভারি বয়কে মূল্য পরিশোধ করুন।
-              </p>
             </div>
 
             {/* feature 6 */}
-            <div className="bg-white p-6 rounded-2xl border border-slate-200/60 shadow-xs hover:shadow-lg transition-all duration-300">
-              <div className="w-11 h-11 bg-rose-50 rounded-xl flex items-center justify-center text-rose-600 font-extrabold text-xl mb-4">
-                🛡️
+            <div className="bg-white p-5 rounded-2xl border border-slate-200/60 shadow-xs hover:shadow-lg transition-all duration-300 flex flex-col justify-between">
+              <div>
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 bg-rose-50 rounded-xl flex items-center justify-center text-rose-600 shrink-0">
+                    <Shield className="h-5 w-5" />
+                  </div>
+                  <h3 className="text-base sm:text-lg font-bold text-slate-950 font-sans">৩ বছর ব্যবহার করতে পারবেন অনায়েশে</h3>
+                </div>
+                <p className="text-xs text-slate-500 leading-relaxed">
+                  হালকা এবং সহজে বহনযোগ্য হওয়ার সাথে এই রেনকোটটি অত্যন্ত টেকসই। একটানা ৩ বছর অনায়াসে ব্যবহার করতে পারবেন, রঙ বা ইলাস্টিসিটি নষ্ট হবে না।
+                </p>
               </div>
-              <h3 className="text-lg font-bold text-slate-950 font-sans">সিঙ্গেল পার্ট - ৩ বছর ব্যবহারের গ্যারান্টি</h3>
-              <p className="text-xs text-slate-500 mt-2 leading-relaxed">
-                হালকা এবং সহজে বহনযোগ্য হওয়ার সাথে এই রেনকোটটি অত্যন্ত টেকসই। একটানা ৩ বছর অনায়াসে ব্যবহার করতে পারবেন, রঙ বা ইলাস্টিসিটি নষ্ট হবে না।
-              </p>
             </div>
           </div>
         </div>
       </section>
 
+      {/* 📊 Premium vs Regular Comparison Section */}
+      <section className="py-12 bg-white border-b border-slate-100/80" id="comparison">
+        <div className="container mx-auto px-4 max-w-4xl">
+          <div className="text-center max-w-2xl mx-auto mb-8">
+            <span className="text-[10px] sm:text-xs font-black text-orange-600 uppercase tracking-wider font-sans px-2.5 py-1 bg-orange-50 rounded-full border border-orange-100 inline-flex items-center gap-1">
+              📊 তুলনামূলক পার্থক্য
+            </span>
+            <h2 className="text-xl sm:text-2xl md:text-3xl font-black text-slate-900 mt-2 font-sans tracking-tight">
+              প্রিমিয়াম বনাম সাধারণ রেইনকোট
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-500 mt-1.5 font-sans">
+              সেলাইবিহীন থার্মাল-সিলড ও প্রিমিয়াম হাই-ডেন্সিটি ফেব্রিক্সের অবিশ্বাস্য কার্যকারিতা নিজের চোখেই দেখে নিন
+            </p>
+          </div>
+
+          {/* Desktop Table View */}
+          <div className="hidden md:block overflow-hidden rounded-2xl border border-slate-200/80 shadow-md">
+            <table className="w-full text-left border-collapse bg-white">
+              <thead>
+                <tr className="bg-slate-950 text-white font-sans text-xs sm:text-sm leading-normal">
+                  <th className="py-4 px-6 text-slate-200 font-bold">তুলনীয় বৈশিষ্ট্য</th>
+                  <th className="py-4 px-6 bg-emerald-950/60 text-emerald-300 font-bold border-x border-slate-900 text-center">
+                    <span className="flex items-center justify-center gap-1.5">
+                      <Sparkles className="h-4 w-4 text-emerald-400" /> আমাদের প্রিমিয়াম রেনকোট
+                    </span>
+                  </th>
+                  <th className="py-4 px-6 text-slate-400 font-bold text-center">সাধারণ বাজারী রেনকোট</th>
+                </tr>
+              </thead>
+              <tbody className="text-slate-700 text-xs sm:text-sm font-sans font-medium">
+                <tr className="border-b border-slate-100 hover:bg-slate-50/50 transition duration-150">
+                  <td className="py-4 px-6 font-semibold text-slate-900">রেইনকোটের ওজন</td>
+                  <td className="py-4 px-6 bg-emerald-500/5 text-emerald-700 font-bold border-x border-slate-100 text-center">
+                    ৮০০ গ্রাম থেকে ১০০০ গ্রাম <br/>
+                    <span className="text-[10px] font-normal text-emerald-600">(ভারী ও শতভাগ খাটি ওয়াটারপ্রুফ ডাস্ট প্রুফ হাই-ডেন্সিটি ফেব্রিক্স)</span>
+                  </td>
+                  <td className="py-4 px-6 text-slate-500 text-center">
+                    ২০০ গ্রাম থেকে ৩০০ গ্রাম <br/>
+                    <span className="text-[10px] font-normal text-rose-500">(খুবই পাতলা ও সামান্য বাতাসেই ছিঁড়ে যায়)</span>
+                  </td>
+                </tr>
+                <tr className="border-b border-slate-100 hover:bg-slate-50/50 transition duration-150">
+                  <td className="py-4 px-6 font-semibold text-slate-900">সেলাই ও জয়েন্টিং</td>
+                  <td className="py-4 px-6 bg-emerald-500/5 text-emerald-700 font-bold border-x border-slate-100 text-center">
+                    ১০০% থার্মাল হিট সিল করা <br/>
+                    <span className="text-[10px] font-normal text-emerald-600">(কোন সুই বা সুতোর ছিদ্র নেই)</span>
+                  </td>
+                  <td className="py-4 px-6 text-slate-500 text-center">
+                    সাধারণ সুতোর সেলাই <br/>
+                    <span className="text-[10px] font-normal text-rose-500">(সেলাইয়ের ফাঁক দিয়ে সহজেই পানি প্রবেশ করে)</span>
+                  </td>
+                </tr>
+                <tr className="border-b border-slate-100 hover:bg-slate-50/50 transition duration-150">
+                  <td className="py-4 px-6 font-semibold text-slate-900">ফ্যাব্রিক কোয়ালিটি</td>
+                  <td className="py-4 px-6 bg-emerald-500/5 text-emerald-700 font-bold border-x border-slate-100 text-center">
+                    প্রিমিয়াম ডাবল-লেয়ার পিভিসি ফেব্রিক্স <br/>
+                    <span className="text-[10px] font-normal text-emerald-600">(১০০% ওয়াটারপ্রুফ ও ঝড়ো বাতাস রোধী)</span>
+                  </td>
+                  <td className="py-4 px-6 text-slate-500 text-center">
+                    সস্তা পাতলা প্লাস্টিক বা নাইলন শীট <br/>
+                    <span className="text-[10px] font-normal text-rose-500">(খুব দ্রুত ভিজে যায় ও পানি চুষে ফেলে)</span>
+                  </td>
+                </tr>
+                <tr className="border-b border-slate-100 hover:bg-slate-50/50 transition duration-150">
+                  <td className="py-4 px-6 font-semibold text-slate-900">স্থায়িত্ব ও লাইফটাইম</td>
+                  <td className="py-4 px-6 bg-emerald-500/5 text-emerald-700 font-bold border-x border-slate-100 text-center">
+                    অনায়াসে ৩ বছরের বেশি <br/>
+                    <span className="text-[10px] font-normal text-emerald-600">(রঙ বা গ্লেজ নষ্ট হয় না ও ফাটে না)</span>
+                  </td>
+                  <td className="py-4 px-6 text-slate-500 text-center">
+                    ১ থেকে ২ মাস সর্বোচ্চ <br/>
+                    <span className="text-[10px] font-normal text-rose-500">(কয়েকবার মৃদু বৃষ্টিতেই ব্যবহারের অনুপযোগী হয়ে যায়)</span>
+                  </td>
+                </tr>
+                <tr className="border-b border-slate-100 hover:bg-slate-50/50 transition duration-150">
+                  <td className="py-4 px-6 font-semibold text-slate-900">কব্জির সুরক্ষাকার গ্রিপ</td>
+                  <td className="py-4 px-6 bg-emerald-500/5 text-emerald-700 font-bold border-x border-slate-100 text-center">
+                    উন্নত ইলাস্টিক রাবার গ্রিপ <br/>
+                    <span className="text-[10px] font-normal text-emerald-600">(হাত বেয়ে বাতাস বা বৃষ্টির পানি ঢোকা অসম্ভব)</span>
+                  </td>
+                  <td className="py-4 px-6 text-slate-500 text-center">
+                    কোন গ্রিপ নেই বা সাধারণ রাবার <br/>
+                    <span className="text-[10px] font-normal text-rose-500">(একটু গতিতে বাইক চালালেই পানি ভেতরে প্রবেশ করে)</span>
+                  </td>
+                </tr>
+                <tr className="hover:bg-slate-50/50 transition duration-150">
+                  <td className="py-4 px-6 font-semibold text-slate-900">হুডি ও ফেস প্রোটেকশন</td>
+                  <td className="py-4 px-6 bg-emerald-500/5 text-emerald-700 font-bold border-x border-slate-100 text-center">
+                    অ্যাডজাস্টেবল লকসহ ফুল ডাবল হুডি <br/>
+                    <span className="text-[10px] font-normal text-emerald-600">(ঝড়ের মধ্যেও চোখ ও মুখ সম্পূর্ণ নিরাপদ থাকে)</span>
+                  </td>
+                  <td className="py-4 px-6 text-slate-500 text-center">
+                    সহজে ঝুলে যাওয়া নড়বড়ে টুপি <br/>
+                    <span className="text-[10px] font-normal text-rose-500">(বাতাস ও বৃষ্টির তীব্র বেগ সামলাতে পারে না)</span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          {/* Mobile Card-Based View */}
+          <div className="block md:hidden space-y-4">
+            {/* Box 1 */}
+            <div className="bg-slate-50 rounded-2xl p-4.5 border border-slate-200/80 font-sans">
+              <h4 className="font-extrabold text-slate-950 text-sm border-b border-slate-200 pb-2 mb-3 flex items-center gap-1.5">
+                ⚖️ রেনকোটের মোট ওজন
+              </h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                <div className="bg-emerald-500/10 p-3 rounded-xl border border-emerald-500/20 text-emerald-950">
+                  <span className="block font-bold text-emerald-800 text-[11px] uppercase tracking-wide">আমাদের প্রিমিয়াম:</span>
+                  <p className="font-medium mt-1 leading-relaxed">৮০০ গ্রাম থেকে ১০০০ গ্রাম (ভারী, অত্যন্ত মজবুত ও প্রিমিয়াম হাই-ডেন্সিটি ফেব্রিক্স)</p>
+                </div>
+                <div className="bg-slate-100 p-3 rounded-xl border border-slate-200 text-slate-500">
+                  <span className="block font-bold text-slate-700 text-[11px] uppercase tracking-wide">সাধারণ রেনকোট:</span>
+                  <p className="font-medium mt-1 leading-relaxed">২০০ গ্রাম থেকে ৩০০ গ্রাম (খুবই পাতলা কাগজ বা পলিথিনের মত, সামান্য বাতাস বা টানেই ছিঁড়ে যায়)</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Box 2 */}
+            <div className="bg-slate-50 rounded-2xl p-4.5 border border-slate-200/80 font-sans">
+              <h4 className="font-extrabold text-slate-950 text-sm border-b border-slate-200 pb-2 mb-3 flex items-center gap-1.5">
+                🔥 সেলাই ও জোড়াসমুহ
+              </h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                <div className="bg-emerald-500/10 p-3 rounded-xl border border-emerald-500/20 text-emerald-950">
+                  <span className="block font-bold text-emerald-800 text-[11px] uppercase tracking-wide">আমাদের প্রিমিয়াম:</span>
+                  <p className="font-medium mt-1 leading-relaxed">১০০% থার্মাল হিট সিল করা (কোন সুই বা সুতোর সেলাইয়ের ছিদ্র নেই)</p>
+                </div>
+                <div className="bg-slate-100 p-3 rounded-xl border border-slate-200 text-slate-500">
+                  <span className="block font-bold text-slate-700 text-[11px] uppercase tracking-wide">সাধারণ রেনকোট:</span>
+                  <p className="font-medium mt-1 leading-relaxed">সাধারণ সুতোর সেলাই (সেলাইয়ের ছোট ছিদ্রগুলো দিয়ে পানি চুইয়ে ভেতরে ঢোকে)</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Box 3 */}
+            <div className="bg-slate-50 rounded-2xl p-4.5 border border-slate-200/80 font-sans">
+              <h4 className="font-extrabold text-slate-950 text-sm border-b border-slate-200 pb-2 mb-3 flex items-center gap-1.5">
+                🧥 কাপড় ও দীর্ঘস্থায়িত্ব
+              </h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                <div className="bg-emerald-500/10 p-3 rounded-xl border border-emerald-500/20 text-emerald-950">
+                  <span className="block font-bold text-emerald-800 text-[11px] uppercase tracking-wide">আমাদের প্রিমিয়াম:</span>
+                  <p className="font-medium mt-1 leading-relaxed">ডাবল-লেয়ার পিভিসি ফেব্রিক্স যা অনায়াসে ৩ বছর বা তার বেশি নিখুঁতভাবে স্থায়ী হয়</p>
+                </div>
+                <div className="bg-slate-100 p-3 rounded-xl border border-slate-200 text-slate-500">
+                  <span className="block font-bold text-slate-700 text-[11px] uppercase tracking-wide">সাধারণ রেনকোট:</span>
+                  <p className="font-medium mt-1 leading-relaxed">সস্তা পাতলা সাধারণ নাইলন যা মাত্র ১ থেকে ২ মাস টেকসই হয়</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Box 4 */}
+            <div className="bg-slate-50 rounded-2xl p-4.5 border border-slate-200/80 font-sans">
+              <h4 className="font-extrabold text-slate-950 text-sm border-b border-slate-200 pb-2 mb-3 flex items-center gap-1.5">
+                🔒 কব্জির সুরক্ষাকার রাবার গ্রিপ ও হুডি
+              </h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                <div className="bg-emerald-500/10 p-3 rounded-xl border border-emerald-500/20 text-emerald-950">
+                  <span className="block font-bold text-emerald-800 text-[11px] uppercase tracking-wide">আমাদের প্রিমিয়াম:</span>
+                  <p className="font-medium mt-1 leading-relaxed">শক্ত ইলাস্টিক সিল লক কব্জি গ্রিপ ও লক সিস্টেম ক্যাপ দ্বারা মুখ ঢাকা থাকে</p>
+                </div>
+                <div className="bg-slate-100 p-3 rounded-xl border border-slate-200 text-slate-500">
+                  <span className="block font-bold text-slate-700 text-[11px] uppercase tracking-wide">সাধারণ রেনকোট:</span>
+                  <p className="font-medium mt-1 leading-relaxed">কোন গ্রিপ থাকে না ও অত্যন্ত সাধারণ ঢিলেঢালা টুপি বাতাসে উড়ে যায়</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      {/* 🎁 "আজকের অফারে যা পাচ্ছেন" Special Offer Section */}
+      <section className="py-10 bg-slate-950 text-white border-b border-slate-900 relative" id="bundle-offer">
+        <div className="container mx-auto px-4 max-w-5xl">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+            
+            {/* Left Column: Offers Info */}
+            <div className="space-y-4">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-500/10 text-amber-400 text-xs font-bold rounded-full border border-amber-500/25 font-sans">
+                <span>🎁 Offer Stack</span>
+              </div>
+              
+              <h2 className="text-2xl sm:text-3xl font-black text-white leading-tight font-sans">
+                আজকের অফারে যা পাচ্ছেন
+              </h2>
+
+              {/* Urgency countdown timer */}
+              <PromoCountdown />
+              
+              <div className="space-y-2 font-sans">
+                {/* Item 1 */}
+                <div className="bg-[#05131b] border border-cyan-950 hover:border-cyan-800 hover:bg-[#071924] transition-all rounded-xl py-2.5 px-4 flex items-center gap-3">
+                  <span className="text-lg shrink-0">🧥</span>
+                  <span className="text-xs sm:text-sm font-bold text-slate-100">১০০% প্রিমিয়াম ওয়াটারপ্রুফ জ্যাকেট</span>
+                </div>
+                {/* Item 2 */}
+                <div className="bg-[#05131b] border border-cyan-950 hover:border-cyan-800 hover:bg-[#071924] transition-all rounded-xl py-2.5 px-4 flex items-center gap-3">
+                  <span className="text-lg shrink-0">👖</span>
+                  <span className="text-xs sm:text-sm font-bold text-slate-100">১০০% ওয়াটারপ্রুফ আরামদায়ক প্যান্ট</span>
+                </div>
+                {/* Item 3 */}
+                <div className="bg-[#05131b] border border-cyan-950 hover:border-cyan-800 hover:bg-[#071924] transition-all rounded-xl py-2.5 px-4 flex items-center gap-3">
+                  <span className="text-lg shrink-0">🎒</span>
+                  <span className="text-xs sm:text-sm font-bold text-slate-100">আকর্ষণীয় ফ্রি স্টোরেজ ও ট্রাভেল ব্যাগ</span>
+                </div>
+                {/* Item 4 */}
+                <div className="bg-[#05131b] border border-cyan-950 hover:border-cyan-800 hover:bg-[#071924] transition-all rounded-xl py-2.5 px-4 flex items-center gap-3">
+                  <span className="text-lg shrink-0">🚚</span>
+                  <span className="text-xs sm:text-sm font-bold text-slate-100">সারা বাংলাদেশে হোম ডেলিভারি হবে</span>
+                </div>
+                {/* Item 5 */}
+                <div className="bg-[#05131b] border border-cyan-950 hover:border-cyan-800 hover:bg-[#071924] transition-all rounded-xl py-2.5 px-4 flex items-center gap-3">
+                  <span className="text-lg shrink-0">💵</span>
+                  <span className="text-xs sm:text-sm font-bold text-slate-100">প্রোডাক্ট হাতে পেয়ে মূল্য পরিশোধ (ক্যাশ অন ডেলিভারি)</span>
+                </div>
+                {/* Item 6 */}
+                <div className="bg-[#05131b] border border-cyan-950 hover:border-cyan-800 hover:bg-[#071924] transition-all rounded-xl py-2.5 px-4 flex items-center gap-3">
+                  <span className="text-lg shrink-0">🔄</span>
+                  <span className="text-xs sm:text-sm font-bold text-slate-100">যেকোনো সাইজ এক্সচেঞ্জ ও পরিবর্তনের সহজ সুযোগ</span>
+                </div>
+              </div>
+              
+              {/* Green Action Button */}
+              <div className="pt-2">
+                <button
+                  onClick={() => scrollToSection('checkout-form')}
+                  className="w-full px-6 py-3.5 bg-[#00e3cd] hover:bg-[#00cbb7] active:scale-98 text-slate-950 font-black text-sm rounded-xl transition duration-300 shadow-lg shadow-[#00e3cd]/10 flex items-center justify-center gap-2 cursor-pointer font-sans"
+                >
+                  🎁 Free Bag সহ এখনই অর্ডার করুন
+                </button>
+              </div>
+            </div>
+            
+            {/* Right Column: Visual raincoats rendering */}
+            <div className="flex justify-center">
+              <div className="w-full max-w-sm bg-white rounded-[2rem] p-6 flex items-center justify-center border border-slate-100 shadow-2xl relative overflow-hidden group aspect-square">
+                {/* Soft gradient aura behind raincoat in white card */}
+                <div className="absolute inset-x-0 bottom-0 h-40 bg-radial from-slate-100 to-transparent pointer-events-none" />
+                <img
+                  src={navyRaincoatImg}
+                  alt="Premium Raincoat Complete Bundle"
+                  referrerPolicy="no-referrer"
+                  className="w-full h-auto max-h-[300px] object-contain transition duration-500 transform group-hover:scale-[1.03] relative z-10"
+                />
+              </div>
+            </div>
+            
+          </div>
+        </div>
+      </section>
+
+      {/* 🚚 Delivery Timeline Section as requested by the user */}
+      <section className="py-8 bg-gradient-to-b from-white to-slate-50/60 border-b border-slate-100" id="delivery-timeline">
+        <div className="container mx-auto px-4 max-w-4xl text-center">
+          
+          {/* Delivery Timeline Pill Badge */}
+          <div className="mx-auto inline-flex items-center gap-1.5 px-3 py-1 bg-black text-white text-[11px] font-bold rounded-full border border-slate-850 shadow-md font-sans mb-3.5">
+            <span className="text-[#ffb703]">🚚</span>
+            <span className="text-white text-[10px] uppercase font-bold tracking-wider">Delivery Timeline</span>
+          </div>
+          
+          {/* Main Heading heading */}
+          <h2 className="text-xl sm:text-2xl md:text-3xl font-black text-slate-900 font-sans tracking-tight mb-6">
+            কতদিনে ডেলিভারি পাবেন?
+          </h2>
+          
+          {/* Three columns grid of high-conversion cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            
+            {/* Card 1: Dhaka */}
+            <div className="bg-white p-4.5 rounded-2xl border border-slate-100 shadow-xs hover:shadow-md hover:border-slate-200 transition-all duration-300 flex flex-col items-center justify-center">
+              <span className="text-sm font-extrabold text-slate-950 font-sans flex items-center gap-1.5">
+                <span className="text-rose-500">📍</span> ঢাকা
+              </span>
+              <span className="text-xs text-slate-500 mt-1 font-sans font-medium">
+                ১-২ দিনের মধ্যে ডেলিভারি
+              </span>
+            </div>
+            
+            {/* Card 2: Other Districts */}
+            <div className="bg-white p-4.5 rounded-2xl border border-slate-100 shadow-xs hover:shadow-md hover:border-slate-200 transition-all duration-300 flex flex-col items-center justify-center">
+              <span className="text-sm font-extrabold text-slate-950 font-sans flex items-center gap-1.5">
+                <span className="text-amber-600">📦</span> অন্যান্য জেলা
+              </span>
+              <span className="text-xs text-slate-500 mt-1 font-sans font-medium">
+                ২-৩ দিনের মধ্যে ডেলিভারি
+              </span>
+            </div>
+            
+            {/* Card 3: COD */}
+            <div className="bg-white p-4.5 rounded-2xl border border-slate-100 shadow-xs hover:shadow-md hover:border-slate-200 transition-all duration-300 flex flex-col items-center justify-center">
+              <span className="text-sm font-extrabold text-slate-950 font-sans flex items-center gap-1.5">
+                <span className="text-emerald-600">💵</span> COD
+              </span>
+              <span className="text-xs text-slate-500 mt-1 font-sans font-medium">
+                পণ্য হাতে পেয়ে টাকা দিবেন।
+              </span>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
       {/* Sizing Chart Tool Section */}
-      <section className="py-16 bg-white" id="size-chart">
+      <section className="py-10 bg-white" id="size-chart">
         <div className="container mx-auto px-4 max-w-7xl">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
             
@@ -387,14 +957,14 @@ export default function App() {
       </section>
 
       {/* Customer Reviews Section */}
-      <section className="py-16 bg-slate-950 text-white" id="reviews">
+      <section className="py-10 bg-slate-950 text-white" id="reviews">
         <div className="container mx-auto px-4 max-w-7xl">
           <ReviewsList />
         </div>
       </section>
 
       {/* Order Placement and Form flow section */}
-      <section className="py-16 bg-blue-50/20" id="checkout-form">
+      <section className="py-10 bg-blue-50/20" id="checkout-form">
         <div className="container mx-auto px-4 max-w-7xl">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start" id="form-scroll-target">
             
@@ -538,6 +1108,9 @@ export default function App() {
           onRefreshOrdersCount={refreshOrdersCount}
         />
       )}
+
+      {/* Real-time floating purchase notification toast */}
+      <LivePurchaseNotification />
 
     </div>
   );
