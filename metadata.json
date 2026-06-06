@@ -1,0 +1,6 @@
+{
+  "name": "Premium Raincoat Store",
+  "description": "১০০% ওয়াটারপ্রুফ প্রিমিয়াম রেইনকোট কালেকশন - বাংলাদেশী বাইকার ও সাধারণ পথচারীদের জন্য সেরা ওয়াটারপ্রুফ গিয়ার।",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
