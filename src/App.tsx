@@ -15,6 +15,8 @@ import LivePurchaseNotification from './components/LivePurchaseNotification';
 import PromoCountdown from './components/PromoCountdown';
 import PageRenderer from './components/PageRenderer';
 import OrderTracker from './components/OrderTracker';
+import OrderHistory from './components/OrderHistory';
+import SuccessToast from './components/SuccessToast';
 import navyRaincoatImg from './assets/images/navy_raincoat_1780660053988.png';
 import { Size, ProductColor, RaincoatOrder } from './types';
 import { motion, AnimatePresence } from 'motion/react';
@@ -24,6 +26,8 @@ export default function App() {
   const [selectedSize, setSelectedSize] = useState<Size>('XXL');
   const [selectedColor, setSelectedColor] = useState<ProductColor>('Navy Blue');
   const [submittedOrder, setSubmittedOrder] = useState<RaincoatOrder | null>(null);
+  const [recentOrderForToast, setRecentOrderForToast] = useState<RaincoatOrder | null>(null);
+  const [activeTrackingTab, setActiveTrackingTab] = useState<'track' | 'history'>('track');
   const [showAdmin, setShowAdmin] = useState(false);
   const [ordersCount, setOrdersCount] = useState(0);
   const [scrollProgress, setScrollProgress] = useState(0);
@@ -208,6 +212,7 @@ export default function App() {
   const handleOrderCreated = (order: RaincoatOrder) => {
     setSubmittedOrder(order);
     refreshOrdersCount();
+    setRecentOrderForToast(order); // Trigger immediate success toast feedback!
 
     // Auto Google Sheets sync if enabled and authenticated
     const sheetsCfg = getSheetsConfig();
@@ -318,8 +323,34 @@ export default function App() {
         </div>
 
         {/* Main Content Area */}
-        <div className="flex-1 py-12 px-4 max-w-3xl mx-auto w-full flex items-center">
-          <OrderTracker />
+        <div className="flex-1 py-10 px-4 max-w-3xl mx-auto w-full flex flex-col justify-center gap-6">
+          {/* Segmented active Tab Selection switcher */}
+          <div className="flex bg-slate-200/50 p-1 rounded-2xl border border-slate-300 w-full sm:max-w-md mx-auto">
+            <button
+              onClick={() => setActiveTrackingTab('track')}
+              className={`flex-1 py-2.5 text-xs sm:text-xs font-black rounded-xl transition-all duration-200 flex items-center justify-center gap-1.5 cursor-pointer ${
+                activeTrackingTab === 'track'
+                  ? 'bg-slate-900 text-white shadow-xs'
+                  : 'text-slate-600 hover:text-slate-950 hover:bg-slate-250'
+              }`}
+            >
+              🔍 অর্ডারটি ট্র্যাক করুন
+            </button>
+            <button
+              onClick={() => setActiveTrackingTab('history')}
+              className={`flex-1 py-2.5 text-xs sm:text-xs font-black rounded-xl transition-all duration-200 flex items-center justify-center gap-1.5 cursor-pointer ${
+                activeTrackingTab === 'history'
+                  ? 'bg-slate-900 text-white shadow-xs'
+                  : 'text-slate-600 hover:text-slate-950 hover:bg-slate-250'
+              }`}
+            >
+              📊 আমার অর্ডার হিস্টোরি
+            </button>
+          </div>
+
+          <div className="w-full">
+            {activeTrackingTab === 'track' ? <OrderTracker /> : <OrderHistory />}
+          </div>
         </div>
 
         {/* Secure Trust Footer */}
@@ -1180,6 +1211,9 @@ export default function App() {
 
       {/* Real-time floating purchase notification toast */}
       <LivePurchaseNotification />
+
+      {/* Immediate order success feedback toast */}
+      <SuccessToast order={recentOrderForToast} onClose={() => setRecentOrderForToast(null)} />
 
     </div>
   );

@@ -35,3 +35,42 @@
   height: 50px;
   animation: fall linear infinite;
 }
+
+/* Printer-friendly print styles */
+@media print {
+  /* Hide the rest of the app elements completely */
+  body > * {
+    visibility: hidden;
+  }
+  
+  /* Make sure our receipt and all of its nested children are fully visible */
+  #order-receipt, #order-receipt * {
+    visibility: visible !important;
+  }
+  
+  /* Reset background and shadow on the container for paper ink saving */
+  #order-receipt {
+    position: absolute;
+    left: 10%;
+    top: 0;
+    width: 80%;
+    max-width: 100%;
+    margin: 0 auto !important;
+    padding: 0 !important;
+    border: 1px solid #cbd5e1 !important;
+    box-shadow: none !important;
+    background-color: white !important;
+  }
+
+  /* Force display of text colors and images if supported */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Completely strip buttons and interactive indicators in the printout */
+  .no-print {
+    display: none !important;
+    visibility: hidden !important;
+  }
+}

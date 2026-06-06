@@ -194,6 +194,18 @@ export default function OrderForm({
       existingOrders.unshift(newOrder);
       localStorage.setItem('raincoat_orders', JSON.stringify(existingOrders));
 
+      // Save order ID to my past order IDs for local history mapping
+      try {
+        const myOrderIdsJson = localStorage.getItem('raincoat_my_order_ids') || '[]';
+        const myOrderIds = JSON.parse(myOrderIdsJson);
+        if (!myOrderIds.includes(newOrder.id)) {
+          myOrderIds.push(newOrder.id);
+        }
+        localStorage.setItem('raincoat_my_order_ids', JSON.stringify(myOrderIds));
+      } catch (err) {
+        console.error('Error saving order ID to history:', err);
+      }
+
       // Clear the temporary draft from incomplete orders because it is now verified & complete
       const incompleteJson = localStorage.getItem('raincoat_incomplete_orders') || '[]';
       let incompleteOrders = JSON.parse(incompleteJson);

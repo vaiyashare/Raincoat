@@ -1,6 +1,7 @@
 import React from 'react';
-import { CheckCircle, Truck, PackageCheck, ClipboardCheck, ArrowRight, ShoppingBag, PhoneCall, Sparkles } from 'lucide-react';
+import { CheckCircle, Truck, PackageCheck, ClipboardCheck, ArrowRight, ShoppingBag, PhoneCall, Sparkles, Printer, FileDown } from 'lucide-react';
 import { RaincoatOrder } from '../types';
+import { jsPDF } from 'jspdf';
 
 interface ReceiptProps {
   order: RaincoatOrder;
@@ -16,6 +17,166 @@ export default function Receipt({ order, onClose }: ReceiptProps) {
     hour: '2-digit',
     minute: '2-digit'
   });
+
+  const handleDownloadPDF = () => {
+    try {
+      const doc = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+      });
+
+      // Colors
+      const blueColor = [15, 23, 42]; // deep navy
+
+      // Invoice Header Border & Box
+      doc.setFillColor(15, 23, 42); // Navy Blue
+      doc.rect(0, 0, 210, 38, 'F');
+
+      // Title
+      doc.setTextColor(255, 255, 255);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(22);
+      doc.text('PREMIUM RAINCOAT INVOICE', 14, 16);
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      doc.setTextColor(200, 255, 200);
+      doc.text('HIGH QUALITY FULL-BODY COVER RAIN PROTECTION SET - ORDER CONFIRMED', 14, 23);
+      doc.text('Customer Support: +8801624933949', 14, 29);
+
+      // Invoice Stamp indicator on top right
+      doc.setFillColor(249, 115, 22);
+      doc.rect(155, 10, 41, 18, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9);
+      doc.text('COD SECURED', 158, 16);
+      doc.setFontSize(7.5);
+      doc.text('CASH ON DELIVERY', 158, 22);
+
+      // Reset text styling
+      doc.setTextColor(15, 23, 42);
+
+      // Section 1: Order Meta Data
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(11);
+      doc.text('ORDER & CUSTOMER INFORMATION', 14, 50);
+      
+      // Line separator
+      doc.setDrawColor(226, 232, 240);
+      doc.line(14, 53, 196, 53);
+
+      let currentY = 60;
+      const drawRow = (label: string, value: string) => {
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(15, 23, 42);
+        doc.setFontSize(9.5);
+        doc.text(label, 14, currentY);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(51, 65, 85);
+        // Split text to fit columns
+        const splitVal = doc.splitTextToSize(value || '', 120);
+        doc.text(splitVal, 70, currentY);
+        currentY += (splitVal.length * 5) + 2;
+      };
+
+      drawRow('Order Reference:', `#${order.id.replace('ord-', '')}`);
+      drawRow('Booking Date:', orderDateStr);
+      drawRow('Customer Name:', order.name || '');
+      drawRow('Mobile Phone:', order.phone || '');
+      
+      const fullAddress = [order.village, order.policeStation, order.district].filter(Boolean).join(', ');
+      drawRow('Delivery Address:', fullAddress || '');
+
+      // Product Specs Info
+      currentY += 4;
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(11);
+      doc.setTextColor(15, 23, 42);
+      doc.text('PRODUCT SPECIFICATIONS', 14, currentY);
+      doc.line(14, currentY + 3, 196, currentY + 3);
+      currentY += 9;
+
+      // Table Header Row background
+      doc.setFillColor(241, 245, 249);
+      doc.rect(14, currentY, 182, 8, 'F');
+      doc.setFontSize(8.5);
+      doc.setTextColor(71, 85, 105);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Product Item Description', 18, currentY + 5.5);
+      doc.text('Color Theme', 95, currentY + 5.5);
+      doc.text('Sizing', 135, currentY + 5.5);
+      doc.text('Total Price', 165, currentY + 5.5);
+      currentY += 13;
+
+      // Product details Row values
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(51, 65, 85);
+      doc.text('Premium Raincoat Set (Jacket + Pants with Hood)', 18, currentY);
+      doc.text(order.color === 'Black' ? 'Premium Cosmic Black' : 'Classic Navy Blue', 95, currentY);
+      doc.text(order.size, 135, currentY);
+      
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(249, 115, 22); // Orange price
+      doc.text(`${order.price} TK`, 165, currentY);
+
+      // Border line for total calculations
+      currentY += 6;
+      doc.setDrawColor(226, 232, 240);
+      doc.line(14, currentY, 196, currentY);
+      currentY += 8;
+
+      // Total info right aligned box
+      doc.setFillColor(248, 250, 252);
+      doc.rect(110, currentY, 86, 24, 'F');
+      doc.setDrawColor(203, 213, 225);
+      doc.rect(110, currentY, 86, 24, 'D');
+
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(71, 85, 105);
+      doc.setFontSize(8.5);
+      doc.text('Price Subtotal:', 116, currentY + 6);
+      doc.text(`${order.price} TK`, 165, currentY + 6);
+      doc.text('Courier Shipping Fee:', 116, currentY + 11);
+      doc.text('0 TK (FREE Delivery)', 155, currentY + 11);
+
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(15, 23, 42);
+      doc.setFontSize(9.5);
+      doc.text('Total Payable Cash:', 116, currentY + 18);
+      doc.setTextColor(249, 115, 22);
+      doc.text(`${order.price} TK`, 165, currentY + 18);
+
+      // Support info and guidelines
+      currentY += 34;
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9.5);
+      doc.setTextColor(15, 23, 42);
+      doc.text('Next Steps & Direct Delivery Terms:', 14, currentY);
+      
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8.2);
+      doc.setTextColor(100, 116, 139);
+      doc.text('1. Our support manager will call you within 12 hours from +8801624933949 to confirm details.', 14, currentY + 6);
+      doc.text('2. Please keep your phone reachable. The delivery representative will call before handoff.', 14, currentY + 11);
+      doc.text('3. You can inspect the materials at the delivery spot and check sizing before pay.', 14, currentY + 16);
+
+      // Footer
+      doc.setDrawColor(241, 245, 249);
+      doc.line(14, 275, 196, 275);
+      doc.setFontSize(7);
+      doc.setTextColor(148, 163, 184);
+      doc.text('Generated automatically on customer browser. Secure pre-sale document of Premium Raincoat Shop BD.', 14, 280);
+      doc.text('Thank you for choosing us!', 158, 280);
+
+      // Save PDF via user download prompt
+      doc.save(`Invoice_Raincoat_${order.id.replace('ord-', '')}.pdf`);
+    } catch (e) {
+      console.error('Error generating PDF with jsPDF:', e);
+      alert('PDF ডাউনলোড করতে কোনো সমস্যা হয়েছে! দয়া করে ইনভয়েস প্রিন্ট করুন অপশন থেকে PDF হিসেবে সেভ করুন।');
+    }
+  };
 
   return (
     <div className="bg-white rounded-3xl shadow-2xl border-4 border-blue-950 overflow-hidden max-w-lg mx-auto" id="order-receipt">
@@ -119,21 +280,40 @@ export default function Receipt({ order, onClose }: ReceiptProps) {
         </div>
 
         {/* Buttons */}
-        <div className="flex flex-col sm:flex-row gap-3">
-          <button
-            onClick={onClose}
-            className="flex-1 py-3 px-4 bg-orange-500 hover:bg-orange-600 text-white font-extrabold text-sm rounded-xl transition duration-300 shadow-md text-center hover:shadow-orange-500/10 hover:shadow-lg font-sans flex items-center justify-center gap-1 cursor-pointer"
-            id="order-more-button"
-          >
-            <ShoppingBag className="h-4 w-4" /> আরেকটি অর্ডার করুন <ArrowRight className="h-4 w-4 ml-1" />
-          </button>
-          
-          <a
-            href="tel:+8801750547800"
-            className="py-3 px-4 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 font-bold text-sm rounded-xl transition duration-300 text-center font-sans flex items-center justify-center gap-1.5"
-          >
-            <PhoneCall className="h-4 w-4" /> সরাসরি কল করুন
-          </a>
+        <div className="flex flex-col gap-3 no-print">
+          <div className="flex flex-col sm:flex-row gap-3">
+            <button
+              onClick={onClose}
+              className="flex-1 py-3 px-4 bg-orange-500 hover:bg-orange-600 text-white font-extrabold text-sm rounded-xl transition duration-300 shadow-md text-center hover:shadow-orange-500/10 hover:shadow-lg font-sans flex items-center justify-center gap-1 cursor-pointer"
+              id="order-more-button"
+            >
+              <ShoppingBag className="h-4 w-4" /> আরেকটি অর্ডার করুন <ArrowRight className="h-4 w-4 ml-1" />
+            </button>
+            
+            <a
+              href="tel:+8801624933949"
+              className="flex-1 py-3 px-4 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 font-bold text-sm rounded-xl transition duration-300 text-center font-sans flex items-center justify-center gap-1.5"
+            >
+              <PhoneCall className="h-4 w-4" /> সরাসরি কল করুন
+            </a>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full">
+            <button
+              onClick={() => window.print()}
+              className="py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 font-bold text-xs rounded-xl transition duration-300 text-center font-sans flex items-center justify-center gap-2 cursor-pointer shadow-xs"
+              id="print-invoice-button"
+            >
+              <Printer className="h-4 w-4 text-slate-600" /> ইনভয়েস প্রিন্ট করুন
+            </button>
+            <button
+              onClick={handleDownloadPDF}
+              className="py-2.5 px-4 bg-slate-900 hover:bg-slate-950 text-white font-black text-xs rounded-xl transition duration-300 text-center font-sans flex items-center justify-center gap-2 cursor-pointer shadow-md hover:shadow-lg"
+              id="download-invoice-pdf-button"
+            >
+              <FileDown className="h-4 w-4 text-orange-400" /> PDF ডাউনলোড করুন
+            </button>
+          </div>
         </div>
       </div>
     </div>
